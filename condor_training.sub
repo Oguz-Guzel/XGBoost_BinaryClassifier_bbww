@@ -1,14 +1,14 @@
 executable              = condor_training.sh
-args                    = $(output_dir)
+args                    = $(output_dir) $(max_depth)
 output                  = condor/out/XGBoost_$(ClusterId).$(ProcId).out
 error                   = condor/err/XGBoost_$(ClusterId).$(ProcId).err
 log                     = condor/log/XGBoost_$(ClusterId).$(ProcId).log
-transfer_input_files    = XGBoost.py 
-+JobFlavour             = "longlunch"
+transfer_input_files    = train.py 
++JobFlavour             = "microcentury"
 when_to_transfer_output = ON_EXIT
 request_GPUs            = 1
 request_CPUs            = 1
 +RequestMemory          = 40000
-queue output_dir from (
-    XGB_2022_2023_signalWx4
+queue output_dir max_depth from (
+    XGB_2022_2023_signalWx5_2000epochs_maxDepth7 7
 )
