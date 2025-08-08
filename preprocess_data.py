@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
 
 #!/usr/bin/env python
 # coding: utf-8
@@ -29,7 +27,7 @@ pd.set_option("display.max_columns", None)
 
 import argparse
 
-parser = argparse.ArgumentParser(description="Transformer Training Script")
+parser = argparse.ArgumentParser(description="Data Preprocessing Script")
 parser.add_argument(
     "--output_dir",
     type=str,
@@ -48,24 +46,6 @@ parser.add_argument(
 #     help="Number of events to process (default: 1e4)",
 # )
 # parser.add_argument(
-#     "--n_epochs",
-#     type=int,
-#     default=50,
-#     help="Number of epochs for training (default: 50)",
-# )
-# parser.add_argument(
-#     "--lr",
-#     type=float,
-#     default=1e-3,
-#     help="Learning rate for the optimizer (default: 1e-3)",
-# )
-# parser.add_argument(
-#     "--wd",
-#     type=float,
-#     default=1e-3,
-#     help="Weight decay for the optimizer (default: 1e-3)",
-# )
-# parser.add_argument(
 #     "--noise_level",
 #     type=float,
 #     default=0.,
@@ -74,14 +54,13 @@ parser.add_argument(
 args = parser.parse_args()
 
 output_dir = args.output_dir
-bamboo_results_dir = ["/eos/user/a/aguzel/bamboo-output/newMLvars-cutflow-2022/results/",
-                      "/eos/user/a/aguzel/bamboo-output/newMLvars-cutflow-2023/results/"]
+bamboo_results_dir = [
+    "/eos/user/a/aguzel/bamboo-output/newMLvars-cutflow-2022/results/",
+    "/eos/user/a/aguzel/bamboo-output/newMLvars-cutflow-2023/results/",
+]
 N = 1e10
 N = int(N)  # Convert to integer for consistency
 noise_level = 0.01
-
-
-# In[ ]:
 
 
 os.makedirs(f"{output_dir}", exist_ok=True)
@@ -99,7 +78,9 @@ else:
 
 def listFiles(prefixes):
     return [
-        file for file in rootFiles if any(file.split("/")[-1].startswith(p) for p in prefixes)
+        file
+        for file in rootFiles
+        if any(file.split("/")[-1].startswith(p) for p in prefixes)
     ]
 
 
@@ -107,7 +88,7 @@ def listFiles(prefixes):
 rootFiles = []
 for path in bamboo_results_dir:
     for file in os.listdir(path):
-       rootFiles.append(os.path.join(path, file))
+        rootFiles.append(os.path.join(path, file))
 
 TT_files = listFiles(["TT"])
 DY_files = listFiles(["DY"])
@@ -217,9 +198,6 @@ processes = ["HH", "bkg"]
 target_set = [
     "HH",
 ]
-
-
-# In[3]:
 
 
 import uproot
@@ -333,9 +311,6 @@ HH_df = CustomData(
 )
 
 
-# In[4]:
-
-
 # Concatenate DataFrames from CustomData objects in customdata_set
 customdata_set = [DY_df, TT_df, other_bkg_df, HH_df]
 # customdata_set = [DY_df, HH_df]
@@ -348,14 +323,8 @@ df = pd.concat(dfs, ignore_index=True)
 print(f"\nConcatenated DataFrame shape: {df.shape}")
 
 
-# In[5]:
-
-
 for col, type in df.dtypes.items():
     print(f"Column: {col}, Type: {type}")
-
-
-# In[6]:
 
 
 if "event_no" not in df.columns:
@@ -370,9 +339,6 @@ for process in processes:
             data.df[process] = np.zeros_like(data.df["event_no"])
 
 weight_branch = "weight"
-
-
-# In[7]:
 
 
 # Make pandas dataframes out of the data
@@ -398,17 +364,11 @@ df["boosted_tag"] = df["boosted_tag"].astype(np.int8)
 #     df = pd.concat([df, charge_dummies], axis=1)
 
 
-# In[8]:
-
-
 print("Number of input features after one-hot encoding:", n_features + 4 * 2)
 
 assert df.shape[0] == len(
     df["event_no"]
 ), "Number of rows in the DataFrame does not match the number of event_no entries"
-
-
-# In[9]:
 
 
 # data cleaning
@@ -434,9 +394,6 @@ rows_with_inf = np.unique(rows_with_inf)  # Unique row indices
 # Drop those rows
 df = df.drop(df.index[rows_with_inf]).reset_index(drop=True)
 print(f"Dropped {len(rows_with_inf)} row(s) containing inf values.")
-
-
-# In[10]:
 
 
 # Keep only rows where both leptons have allowed pdgId values
@@ -474,9 +431,6 @@ df.reset_index(drop=True, inplace=True)
 print("Outliers dropped.")
 
 
-# In[11]:
-
-
 # Need to cut out negative weights #
 print(
     f"\nTotal weight sum = {df[weight_branch].sum():1.3e}, with {(df[weight_branch]<0).sum()} negative weight events"
@@ -487,18 +441,12 @@ print(
 )
 
 
-# In[12]:
-
-
 # In case you restricted the number of events, need to rescale the weights
 for process, data_process in zip(processes, customdata_set):
     ratio = (
         data_process.df[weight_branch].sum() / df[df[process] == 1][weight_branch].sum()
     )
     df.loc[df[process] == 1, weight_branch] *= ratio
-
-
-# In[13]:
 
 
 # Plot the weights before normalisation
@@ -555,8 +503,8 @@ for process in processes:
     )
 
 # Increase the weight for HH events
-df.loc[df["HH"] == 1, weight_branch] *= 4
-print("\nAfter multiplying HH weights by 4")
+df.loc[df["HH"] == 1, weight_branch] *= 5
+print("\nAfter multiplying HH weights by 5")
 for process in processes:
     print(
         f"{process} : N = {df[df[process]==1].shape[0]:6d}, sum(w) = {df[df[process]==1][weight_branch].sum():1.3e}"
@@ -598,23 +546,14 @@ plt.clf()
 print(f"\nNormalised weights saved to {output_dir}/normalised_weights.png")
 
 
-# In[14]:
-
-
 # Convert all feature columns to float32 for efficiency
 df[feature_list] = df[feature_list].astype(np.float32)
 df[weight_branch] = df[weight_branch].astype(np.float32)
 df["event_no"] = df["event_no"].astype(np.int64)
 
 
-# In[15]:
-
-
 for col, type in df.dtypes.items():
     print(col, "    :", type)
-
-
-# In[16]:
 
 
 # # Create directory for histograms if it doesn't exist
@@ -639,9 +578,6 @@ for col, type in df.dtypes.items():
 #     fig.savefig(os.path.join(hist_dir, f"{col}_hist.png"))
 #     plt.close(fig)
 # print(f"Saved all inputs as histograms to {hist_dir}")
-
-
-# In[17]:
 
 
 # if noise_level > 0.0:
@@ -669,316 +605,5 @@ for col, type in df.dtypes.items():
 #     df = pd.concat([df, df_aug], ignore_index=True)
 
 
-# In[18]:
-
-
-import xgboost as xgb
-
-from sklearn.metrics import roc_auc_score, roc_curve
-
-# Prepare features and target
-exclude_cols = ["HH", "bkg", "weight", "event_no"]
-feature_cols = [col for col in df.columns if col not in exclude_cols]
-X = df[feature_cols].values
-y = df["HH"].values
-weights = df["weight"].values
-
-
-# In[19]:
-
-
-from sklearn.model_selection import train_test_split
-
-X_train, X_test, y_train, y_test, weights_train, weights_test = train_test_split(
-    X, y, weights, test_size=0.2, random_state=seed, stratify=y
-)
-
-
-# In[46]:
-
-
-# Train an XGBoost model
-
-model = xgb.XGBClassifier(
-    n_estimators=1000,
-    learning_rate=0.005,
-    max_depth=4,
-    subsample=0.8,
-    colsample_bytree=0.8,
-    tree_method="hist",
-    device="gpu",
-    random_state=seed,
-    eval_metric=["logloss", "auc"],
-    reg_alpha=0.1,
-    reg_lambda=1.0,
-)
-model.fit(
-    X_train,
-    y_train,
-    sample_weight=weights_train,
-    eval_set=[(X_train, y_train), (X_test, y_test)],
-    verbose=1,
-)
-
-
-# In[47]:
-
-
-# obtain predictions
-y_pred = model.predict_proba(X_test)[:, 1]
-results = model.evals_result()
-
-
-# In[48]:
-
-
-# Predict and evaluate
-roc_auc = roc_auc_score(y_test, y_pred, sample_weight=weights_test)
-print(f"XGBoost ROC AUC: {roc_auc:.4f}")
-
-# Plot ROC curve
-fpr, tpr, _ = roc_curve(y_test, y_pred, sample_weight=weights_test)
-plt.figure()
-plt.plot(fpr, tpr, label=f"XGBoost ROC (AUC={roc_auc:.3f})")
-plt.plot([0, 1], [0, 1], "k--")
-plt.xlabel("False Positive Rate")
-plt.ylabel("True Positive Rate")
-plt.legend()
-plt.grid(True)
-plt.savefig(f"{output_dir}/xgb_roc_curve.png")
-plt.show()
-print(f"ROC curve saved to {output_dir}/xgb_roc_curve.png")
-
-
-# In[49]:
-
-
-plt.figure()
-plt.plot(results["validation_0"]["logloss"], label="Training Logloss", color="blue", marker="o", markersize=4, alpha=0.5)
-plt.plot(results["validation_1"]["logloss"], label="Validation Logloss", color="red", marker="s", markersize=4, alpha=0.5)
-plt.xlabel("Boosting Round")
-plt.ylabel("Logloss")
-plt.title("XGBoost Training and Validation Loss")
-plt.legend()
-plt.yscale("log")
-plt.grid(True)
-plt.savefig(f"{output_dir}/xgb_loss_curve.png")
-plt.show()
-
-
-# In[50]:
-
-
-# Plot score distribution for signal and background (normalised)
-plt.figure()
-plt.hist(
-    y_pred[y_test == 1],
-    weights=weights_test[y_test == 1],
-    bins=50,
-    histtype="step",
-    color="blue",
-    label="Signal",
-    density=True  # Normalise histogram
-)
-plt.hist(
-    y_pred[y_test == 0],
-    weights=weights_test[y_test == 0],
-    bins=50,
-    histtype="step",
-    color="red",
-    label="Background",
-    density=True  # Normalise histogram
-)
-plt.xlabel("XGBoost Output Score")
-plt.ylabel("Density")
-plt.legend()
-plt.title("XGBoost Score Distribution (Normalised)")
-plt.savefig(f"{output_dir}/xgb_score_dist_normalised.png")
-plt.show()
-print(f"Score distribution saved to {output_dir}/xgb_score_dist_normalised.png")
-
-
-# In[51]:
-
-
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-
-# Predict class labels for validation set
-y_pred_label = (y_pred > 0.5).astype(int)
-
-# Compute confusion matrix (normalized)
-cm = confusion_matrix(
-    y_test, y_pred_label, sample_weight=weights_test, normalize="true"
-)
-display_labels = ["Background", "Signal"]
-disp = ConfusionMatrixDisplay(
-    confusion_matrix=cm, display_labels=display_labels
-)
-disp.plot(cmap="Blues", values_format=".2f")
-disp.ax_.set_yticklabels(display_labels, rotation=90)
-
-disp.ax_.text(
-    0.0,
-    1.05,
-    "Private work (CMS simulation)",
-    fontsize=20,
-    fontproperties="Tex Gyre Heros:italic",
-    transform=disp.ax_.transAxes,
-    verticalalignment="top",
-)
-disp.ax_.text(
-    0.8,
-    1.05,
-    "(13.6 TeV)",
-    fontsize=20,
-    fontproperties="Tex Gyre Heros",
-    transform=disp.ax_.transAxes,
-    verticalalignment="top",
-)
-
-# Adjust colorbar to have the same height as the confusion matrix plot
-cbar = disp.figure_.axes[-1]
-cbar.set_position(
-    [
-        cbar.get_position().x0,
-        disp.ax_.get_position().y0,
-        cbar.get_position().width,
-        disp.ax_.get_position().height,
-    ]
-)
-plt.savefig(f"{output_dir}/xgb_confusion_matrix.png")
-plt.show()
-print(f"Confusion matrix saved to {output_dir}/xgb_confusion_matrix.png")
-
-
-# In[52]:
-
-
-from xgboost import plot_importance
-
-# Plot feature importance with feature names
-plt.figure(figsize=(10, 6))
-ax = plot_importance(
-    model,
-    max_num_features=len(feature_cols),
-    importance_type="gain",
-    show_values=False,
-)
-feature_names = [col for col in df.columns if col not in ["HH", "bkg", "weight"]]
-ax.set_yticklabels([feature_names[i] for i in range(len(ax.get_yticklabels()))])
-plt.title("XGBoost Feature Importance")
-plt.tight_layout()
-ax.tick_params(axis="y", labelsize=8, length=0)  # Remove y-axis ticks
-plt.savefig(f"{output_dir}/xgb_feature_importance.png")
-plt.show()
-print(f"Feature importance plot saved to {output_dir}/xgb_feature_importance.png")
-
-
-from sklearn.model_selection import StratifiedKFold
-
-kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
-
-for fold, (train_idx, test_idx) in enumerate(kf.split(X, y)):
-    print(f"Fold {fold+1}")
-    X_train, X_test = X[train_idx], X[test_idx]
-    y_train, y_test = y[train_idx], y[test_idx]
-    w_train, weights_test = weights[train_idx], weights[test_idx]
-
-    model.fit(
-        X_train,
-        y_train,
-        sample_weight=w_train,
-        eval_set=[(X_test, y_test)],
-        sample_weight_eval_set=[weights_test],
-        verbose=False,
-    )
-    y_pred = model.predict_proba(X_test)[:, 1]
-    roc_auc = roc_auc_score(y_test, y_pred, sample_weight=weights_test)
-    print(f"ROC AUC (fold {fold+1}): {roc_auc:.4f}")
-
-
-# In[54]:
-
-
-import onnxmltools
-from onnxmltools.convert.common.data_types import FloatTensorType
-
-onnx_model = onnxmltools.convert_xgboost(
-    model,
-    initial_types=[("float_input", FloatTensorType([None, X_train.shape[1]]))],
-)
-onnx_path = f"{output_dir}/model.onnx"
-with open(onnx_path, "wb") as f:
-    f.write(onnx_model.SerializeToString())
-print(f"XGBoost model exported to {onnx_path}")
-
-
-# In[ ]:
-
-
-import onnxruntime as ort
-import numpy as np
-
-sess = ort.InferenceSession(onnx_path)
-input_name = sess.get_inputs()[0].name
-output_names = [o.name for o in sess.get_outputs()]
-
-# Example input: use a real sample from your training data
-signal_sample = df[df.HH == 1].sample(n=1000, random_state=seed)[feature_cols].values
-bkg_sample = df[df.bkg == 1].sample(n=1000, random_state=seed)[feature_cols].values
-
-signal_outputs = sess.run(output_names, {input_name: signal_sample.astype(np.float32)})
-bkg_outputs = sess.run(output_names, {input_name: bkg_sample.astype(np.float32)})
-signal_probs = signal_outputs[1]
-bkg_probs = bkg_outputs[1]
-
-
-# In[56]:
-
-
-plt.figure()
-plt.hist(
-    signal_probs[:, 1],
-    bins=50,
-    color="skyblue",
-    histtype="step",
-    edgecolor="navy",
-    label="signal",
-)
-plt.hist(
-    bkg_probs[:, 1],
-    bins=50,
-    color="salmon",
-    histtype="step",
-    edgecolor="red",
-    label="background",
-)
-plt.xlabel("Predicted Probability (class 1)")
-plt.ylabel("Count")
-plt.title("ONNX Model Output Probabilities")
-plt.grid(True)
-plt.legend()
-plt.savefig(f"{output_dir}/onnx_model_output_probs.png")
-print(f"ONNX model output probabilities saved to {output_dir}/onnx_model_output_probs.png")
-
-
-# In[ ]:
-
-
-# import nbformat
-# from nbconvert import PythonExporter
-
-# notebook_path = "XGBoost.ipynb"
-# script_path = "XGBoost.py"
-
-# with open(notebook_path, "r", encoding="utf-8") as f:
-#     nb = nbformat.read(f, as_version=4)
-
-# python_exporter = PythonExporter()
-# script_body, _ = python_exporter.from_notebook_node(nb)
-
-# with open(script_path, "w", encoding="utf-8") as f:
-#     f.write(script_body)
-
-# print(f"Notebook converted to Python script: {script_path}")
-
+df.to_parquet(f"{output_dir}/processed_data.parquet")
+print(f"Processed DataFrame saved to {output_dir}/processed_data.parquet")
